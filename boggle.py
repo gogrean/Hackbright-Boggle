@@ -108,6 +108,7 @@ def make_board(board_string):
 
     return board
 
+
 def find_neighbors(pos):
     left_pos = (pos[0], pos[1]+1)
     right_pos = (pos[0], pos[1]-1)
@@ -116,9 +117,36 @@ def find_neighbors(pos):
     valid_neighbors = [p for p in [left_pos, right_pos, up_pos, down_pos] if (0 <= p[0] < board_size) and (0 <= p[1] < board_size)]
     return valid_neighbors
 
+def reset_board():
+    all_tiles = [(i,j) for i in range(5) for j in range(5)]
+    return [], all_tiles
 
-def find(board, word):
+def find(board, word, available_tiles=None, current_path=[]):
     """Can word be found in board?"""
+    # If there are no available tiles, it means that a new search has started,
+    # either for a new word, or a search that begins at a new position on the 
+    # board (looking for a new path to find the word). In this case, the 
+    # available tiles are set to include all the tiles of the board, and the 
+    # current path is (re)set to an empty list.
+    if not available_tiles:
+        current_path, available_tiles = reset_board()
+    if len(word) == 1:
+        if word in [board[tile[0]][tile[1]] for tile in available_tiles if tile not in current_path]:
+            return True
+        return False
+    origin_tile = [tile for tile in available_tiles if board[tile[0]][tile[1]] == word[0] if tile not in current_path]
+    if origin_tile:
+        neighbors = {}
+        for ot in origin_tile:
+            neighbors[ot] = find_neighbors(ot)
+
+        for ot in origin_tile:
+            current_path.append(ot)
+            if find(board, word[1:], available_tiles=neighbors[ot], current_path=current_path):
+                return True
+            current_path = []
+    return False
+
 
 
 if __name__ == '__main__':
