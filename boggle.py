@@ -74,7 +74,6 @@ and then go down, left, up, up, right to find all four `O`s and the `S`::
     
 """
 
-board_size = 5
 
 def make_board(board_string):
     """Make a board from a string.
@@ -114,15 +113,21 @@ def find_neighbors(pos):
     right_pos = (pos[0], pos[1]-1)
     up_pos = (pos[0]-1, pos[1])
     down_pos = (pos[0]+1, pos[1])
-    valid_neighbors = [p for p in [left_pos, right_pos, up_pos, down_pos] if (0 <= p[0] < board_size) and (0 <= p[1] < board_size)]
+    valid_neighbors = [p for p in [left_pos, right_pos, up_pos, down_pos] \
+                       if (0 <= p[0] < 5) and (0 <= p[1] < 5)]
     return valid_neighbors
 
 def reset_board():
     all_tiles = [(i,j) for i in range(5) for j in range(5)]
     return [], all_tiles
 
+def run_base_case(board, word, available_tiles, current_path):
+    if word in [board[tile[0]][tile[1]] for tile in available_tiles if tile not in current_path]:
+        return True
+    return False
+
 def find(board, word, available_tiles=None, current_path=[]):
-    """Can word be found in board?"""
+    """Evaluate whether a word can be found in a Boggle board."""
     # If there are no available tiles, it means that a new search has started,
     # either for a new word, or a search that begins at a new position on the 
     # board (looking for a new path to find the word). In this case, the 
@@ -130,21 +135,37 @@ def find(board, word, available_tiles=None, current_path=[]):
     # current path is (re)set to an empty list.
     if not available_tiles:
         current_path, available_tiles = reset_board()
+    
+    # The base case is when the word we're looking for only has one letter.
     if len(word) == 1:
-        if word in [board[tile[0]][tile[1]] for tile in available_tiles if tile not in current_path]:
-            return True
-        return False
+        return run_base_case(board, word, available_tiles, current_path)
+    
+    # If the word has more than one letter, find the tiles on the board that 
+    # contain the first letter of the word. This is saved as a list: there 
+    # might be no tiles on the board having the first letter of the word, there
+    # might be just one possible starting point (only one tile), or there could 
+    # be multiple possible starting points.
     origin_tile = [tile for tile in available_tiles if board[tile[0]][tile[1]] == word[0] if tile not in current_path]
-    if origin_tile:
-        neighbors = {}
-        for ot in origin_tile:
-            neighbors[ot] = find_neighbors(ot)
 
+    # If the list of origin tiles is empty, then the current path did not 
+    # return the word we were searching for. Otherwise, we have at least one 
+    # possible starting point.
+    if origin_tile:
         for ot in origin_tile:
+            # Add the current tile to the path currently being evaluated, so
+            # that a tile already in the path is not considered again in the 
+            # seach. 
             current_path.append(ot)
-            if find(board, word[1:], available_tiles=neighbors[ot], current_path=current_path):
+            # Get the neighbors of the current tile, to figure out where to
+            # go next.
+            neighbors = find_neighbors(ot)
+            # The magic of recursion...
+            if find(board, word[1:], available_tiles=neighbors, current_path=current_path):
                 return True
+            # If the path was not found starting from this origin tile,
+            # then the current path needs to be reset to an empty list.
             current_path = []
+
     return False
 
 
